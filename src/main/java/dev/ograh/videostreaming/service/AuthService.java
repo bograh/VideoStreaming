@@ -7,10 +7,7 @@ import dev.ograh.videostreaming.dto.response.AuthResponseDTO;
 import dev.ograh.videostreaming.dto.response.UserResponse;
 import dev.ograh.videostreaming.entity.User;
 import dev.ograh.videostreaming.enums.UserRole;
-import dev.ograh.videostreaming.exception.InvalidTokenException;
-import dev.ograh.videostreaming.exception.ResourceNotFoundException;
-import dev.ograh.videostreaming.exception.UnauthorizedException;
-import dev.ograh.videostreaming.exception.UserNotFoundException;
+import dev.ograh.videostreaming.exception.*;
 import dev.ograh.videostreaming.repository.UserRepository;
 import dev.ograh.videostreaming.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +17,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -33,10 +30,15 @@ public class AuthService {
 
     public AuthResponseDTO register(RegisterRequest request) {
         String email = request.email();
-        String password = passwordEncoder.encode(request.password());
+        String password = request.password();
+
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new EmailExistsException("User already exists with email: " + email);
+        }
 
         User user = createUserEntity(request);
         userRepository.save(user);
+
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
         String token = jwtService.generateToken(user);
@@ -74,8 +76,8 @@ public class AuthService {
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(UserRole.VIEWER);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
+        user.setCreatedAt(Instant.now());
+        user.setUpdatedAt(Instant.now());
         return user;
     }
 
