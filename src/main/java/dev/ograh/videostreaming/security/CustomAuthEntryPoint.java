@@ -5,6 +5,7 @@ import dev.ograh.videostreaming.exception.ErrorResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
@@ -24,12 +25,15 @@ public class CustomAuthEntryPoint implements AuthenticationEntryPoint {
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+        String requestId = MDC.get("X-Correlation-ID");
+
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.UNAUTHORIZED.value(),
                 "UNAUTHORIZED",
                 String.format("Unauthorized access to resource: %s", request.getRequestURI()),
                 request.getRequestURI(),
-                String.valueOf(LocalDateTime.now())
+                LocalDateTime.now().toString(),
+                requestId
 
         );
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
