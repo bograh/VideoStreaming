@@ -3,16 +3,14 @@ package dev.ograh.videostreaming.entity;
 import dev.ograh.videostreaming.enums.EncodeFormat;
 import dev.ograh.videostreaming.enums.Resolution;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -36,19 +34,25 @@ public class VideoFile {
     private long height;
     private long bitrate;
     private int fps;
+
+    @Column(name = "file_size_bytes", nullable = false)
     private long fileSizeBytes;
 
-    @Column(nullable = false)
+    @Column(name = "file_key", nullable = false)
     private String fileKey;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "file_url")
     private String fileUrl;
 
-    private boolean isPrimary;
+    @Builder.Default
+    @Column(nullable = false, name = "is_primary")
+    private boolean isPrimary = false;
 
-    private Instant createdAt;
+    @Builder.Default
+    @Column(nullable = false, name = "created_at")
+    private Instant createdAt = Instant.now();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "video_id", referencedColumnName = "id")
     private Video video;
 }

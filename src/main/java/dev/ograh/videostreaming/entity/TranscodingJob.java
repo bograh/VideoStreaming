@@ -4,16 +4,14 @@ import dev.ograh.videostreaming.enums.JobStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -28,10 +26,10 @@ public class TranscodingJob {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "target_encoding")
     private String targetEncoding;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "target_resolution")
     private String targetResolution;
 
     @Enumerated(EnumType.STRING)
@@ -42,29 +40,40 @@ public class TranscodingJob {
     @Max(10)
     private int priority;
 
+    @Builder.Default
     @Column(nullable = false)
     private int attempts = 0;
 
-    @Column(nullable = false)
+    @Builder.Default
+    @Column(nullable = false, name = "max_attempts")
     private int maxAttempts = 3;
 
+    @Column(name = "worker_id")
     private String workerId;
 
-    @Column(columnDefinition = "TEXT")
+
+    @Column(name = "ffmpeg_cmd", columnDefinition = "TEXT")
     private String ffmpegCmd;
 
+    @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "progress_percent")
     @Min(0)
     @Max(100)
     private int progressPercent;
 
+    @Builder.Default
+    @Column(name = "queued_at", nullable = false)
     private Instant queuedAt = Instant.now();
+
+    @Column(name = "started_at")
     private Instant startedAt;
+
+    @Column(name = "completed_at")
     private Instant completedAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "video_id", referencedColumnName = "id")
     private Video video;
 }

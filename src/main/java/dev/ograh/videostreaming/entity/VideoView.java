@@ -1,15 +1,13 @@
 package dev.ograh.videostreaming.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.Instant;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -24,19 +22,35 @@ public class VideoView {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "session_id", nullable = false, unique = true)
     private String sessionId;
+
+    @Column(name = "ip_address", nullable = false)
     private String ipAddress;
+
+    @Column(name = "user_agent", nullable = false)
     private String userAgent;
+
+    @Column(name = "country_code", nullable = false)
     private String countryCode;
+
+    @Builder.Default
+    @Column(name = "watch_secs", nullable = false)
     private long watchSecs = 0;
+
+    @Builder.Default
+    @Column(nullable = false)
     private boolean completed = false;
+
+    @Builder.Default
+    @Column(name = "viewed_at", nullable = false)
     private Instant viewedAt = Instant.now();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "video_id", referencedColumnName = "id")
     private Video video;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 
