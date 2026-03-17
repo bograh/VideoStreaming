@@ -14,6 +14,7 @@ public record RegisterRequest(
         String email,
 
         @NotBlank(message = "Password cannot be blank")
+        @Size(min = 8, max = 256, message = "Password must be between 8 and 256 characters")
         String password
 ) {
 }
