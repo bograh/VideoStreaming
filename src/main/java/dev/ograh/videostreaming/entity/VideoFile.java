@@ -4,6 +4,7 @@ import dev.ograh.videostreaming.enums.EncodeFormat;
 import dev.ograh.videostreaming.enums.Resolution;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -48,9 +49,9 @@ public class VideoFile {
     @Column(nullable = false, name = "is_primary")
     private boolean isPrimary = false;
 
-    @Builder.Default
-    @Column(nullable = false, name = "created_at")
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(nullable = false, name = "created_at", updatable = false)
+    private Instant createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "video_id", referencedColumnName = "id")

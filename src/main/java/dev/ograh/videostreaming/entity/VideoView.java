@@ -42,9 +42,8 @@ public class VideoView {
     @Column(nullable = false)
     private boolean completed = false;
 
-    @Builder.Default
     @Column(name = "viewed_at", nullable = false)
-    private Instant viewedAt = Instant.now();
+    private Instant viewedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "video_id", referencedColumnName = "id")

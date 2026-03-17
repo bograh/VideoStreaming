@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -63,9 +64,9 @@ public class TranscodingJob {
     @Max(100)
     private int progressPercent;
 
-    @Builder.Default
+    @CreationTimestamp
     @Column(name = "queued_at", nullable = false)
-    private Instant queuedAt = Instant.now();
+    private Instant queuedAt;
 
     @Column(name = "started_at")
     private Instant startedAt;

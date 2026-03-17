@@ -3,6 +3,8 @@ package dev.ograh.videostreaming.entity;
 import dev.ograh.videostreaming.enums.VideoStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -59,16 +61,24 @@ public class Video {
     @Column(name = "dislike_count", nullable = false)
     private long dislikeCount = 0;
 
-    @Builder.Default
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
-    @Builder.Default
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt = Instant.now();
+    private Instant updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 
+    @Builder.Default
+    @OneToMany(mappedBy = "video", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VideoFile> videoFiles = new ArrayList<>();
+
+    public void addVideoFile(VideoFile videoFile) {
+        videoFiles.add(videoFile);
+        videoFile.setVideo(this);
+    }
 }

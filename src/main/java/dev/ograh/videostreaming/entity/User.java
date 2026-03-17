@@ -3,8 +3,10 @@ package dev.ograh.videostreaming.entity;
 import dev.ograh.videostreaming.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -35,12 +37,12 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserRole role = UserRole.VIEWER;
 
-    @Builder.Default
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt;
 
-    @Builder.Default
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Instant updatedAt;
 
 }
