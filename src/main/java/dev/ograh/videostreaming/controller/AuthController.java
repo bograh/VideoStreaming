@@ -53,6 +53,17 @@ public class AuthController {
         return ResponseEntity.ok(authResponseDTO.getAuthResponse());
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken, HttpServletResponse response
+    ) {
+        if (refreshToken == null) {
+            throw new InvalidTokenException("Refresh token is missing");
+        }
+        setRefreshTokenCookie(response, "");
+        return ResponseEntity.noContent().build();
+    }
+
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
