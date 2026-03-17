@@ -1,6 +1,7 @@
 package dev.ograh.videostreaming.security;
 
 import dev.ograh.videostreaming.entity.User;
+import dev.ograh.videostreaming.exception.InvalidTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -47,7 +48,7 @@ public class JwtService {
                     .getPayload();
         } catch (JwtException | IllegalArgumentException e) {
             log.error("Invalid JWT token: {}", e.getMessage());
-            throw new RuntimeException(e);
+            throw new InvalidTokenException("Invalid or Expired JWT token");
         }
     }
 
