@@ -42,9 +42,6 @@ public class VideoFile {
     @Column(name = "file_key", nullable = false)
     private String fileKey;
 
-    @Column(nullable = false, name = "file_url")
-    private String fileUrl;
-
     @Builder.Default
     @Column(nullable = false, name = "is_primary")
     private boolean primary = false;

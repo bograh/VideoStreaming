@@ -39,11 +39,12 @@ public class Video {
     private long durationSecs;
 
     @Column(nullable = false, name = "thumbnail_url")
-    private String thumbnailUrl;
+    private String thumbnailKey;
 
     @Enumerated(EnumType.STRING)
     private VideoStatus status;
 
+    @Builder.Default
     @ElementCollection
     @CollectionTable(name = "video_tags", joinColumns = @JoinColumn(name = "video_id"))
     @Column(name = "tag")
