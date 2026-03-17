@@ -19,4 +19,15 @@ public enum Resolution {
         this.label = label;
     }
 
+    public static Resolution fromHeight(int height) {
+        if (height >= 2160) return R2160P;
+        if (height >= 1440) return R1440P;
+        if (height >= 1080) return R1080P;
+        if (height >= 720) return R720P;
+        if (height >= 480) return R480P;
+        if (height >= 360) return R360P;
+        if (height >= 240) return R240P;
+        return AUDIO_ONLY;
+    }
+
 }
