@@ -38,11 +38,11 @@ public class Comment {
 
     @Builder.Default
     @Column(name = "is_pinned", nullable = false)
-    private boolean isPinned = false;
+    private boolean pinned = false;
 
     @Builder.Default
     @Column(name = "is_hidden", nullable = false)
-    private boolean isHidden = false;
+    private boolean hidden = false;
 
     @Column(name = "edited_at")
     private Instant editedAt;

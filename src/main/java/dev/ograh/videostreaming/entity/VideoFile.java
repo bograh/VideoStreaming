@@ -47,7 +47,7 @@ public class VideoFile {
 
     @Builder.Default
     @Column(nullable = false, name = "is_primary")
-    private boolean isPrimary = false;
+    private boolean primary = false;
 
     @CreationTimestamp
     @Column(nullable = false, name = "created_at", updatable = false)
