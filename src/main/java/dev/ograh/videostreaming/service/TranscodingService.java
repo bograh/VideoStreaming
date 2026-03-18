@@ -3,7 +3,7 @@ package dev.ograh.videostreaming.service;
 import dev.ograh.videostreaming.dto.shared.VideoMetadata;
 import dev.ograh.videostreaming.entity.TranscodingJob;
 import dev.ograh.videostreaming.enums.EncodeFormat;
-import dev.ograh.videostreaming.enums.VideoResolution;
+import dev.ograh.videostreaming.enums.Resolution;
 import dev.ograh.videostreaming.utils.TranscodingHelperService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class TranscodingService {
 
                 for (EncodeFormat format : EncodeFormat.values()) {
                     if (format == EncodeFormat.ORIGINAL) continue;
-                    for (VideoResolution resolution : VideoResolution.values()) {
+                    for (Resolution resolution : Resolution.values()) {
                         if (resolution.getHeight() > metadata.dimension().height()) continue;
 
                         TranscodingJob job = transcodingHelperService.queueTranscodingJob(
