@@ -46,7 +46,7 @@ public class S3Service {
 
     public String getPresignedUrl(String key) {
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(15))
+                .signatureDuration(Duration.ofMinutes(60))
                 .getObjectRequest(req -> req
                         .bucket(s3Config.getBucketName())
                         .key(key)
