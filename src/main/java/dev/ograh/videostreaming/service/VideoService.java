@@ -15,8 +15,8 @@ import dev.ograh.videostreaming.entity.Video;
 import dev.ograh.videostreaming.entity.VideoFile;
 import dev.ograh.videostreaming.exception.ResourceNotFoundException;
 import dev.ograh.videostreaming.exception.VideoUploadException;
-import dev.ograh.videostreaming.repository.VideoFileRepository;
 import dev.ograh.videostreaming.repository.VideoRepository;
+import dev.ograh.videostreaming.utils.TempFileManager;
 import dev.ograh.videostreaming.utils.UserHelper;
 import dev.ograh.videostreaming.utils.VideoMetadataUtil;
 import dev.ograh.videostreaming.utils.VideoServiceHelper;
@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,18 +45,22 @@ public class VideoService {
     private final UserHelper userHelper;
     private final VideoMetadataUtil videoMetadataUtil;
     private final VideoServiceHelper videoServiceHelper;
-    private final VideoFileRepository videoFileRepository;
+    private final TranscodingService transcodingService;
+    private final TempFileManager tempFileManager;
 
     @CacheEvict(value = "videos", allEntries = true)
     public VideoUploadResponse uploadVideo(MultipartFile file, MultipartFile thumbnail, VideoUploadRequest videoUploadRequest, HttpServletRequest request) {
         videoServiceHelper.validateVideoFile(file, videoUploadRequest.title());
         User user = userHelper.getAuthenticatedUser(request);
 
-        File tempVideoFile = null;
-        File tempThumbnailFile = null;
         try {
-            tempVideoFile = videoServiceHelper.createTempFile(file, "upload-");
-            tempThumbnailFile = videoServiceHelper.createTempFile(thumbnail, "thumbnail-");
+            Path tempVideoPath = tempFileManager.createTempFile("upload-", ".mp4");
+            File tempVideoFile = tempVideoPath.toFile();
+
+            File tempThumbnailFile = tempFileManager.createTempFile("thumbnail-", ".jpg").toFile();
+
+            file.transferTo(tempVideoFile);
+            thumbnail.transferTo(tempThumbnailFile);
 
             VideoMetadata metadata = videoMetadataUtil.extractMetadata(tempVideoFile);
 
@@ -68,6 +73,8 @@ public class VideoService {
             video.addVideoFile(videoFile);
             Video savedVideo = videoRepository.save(video);
 
+            transcodingService.transcodeVideo(savedVideo.getId(), videoFile.getFileKey(), metadata);
+
             return videoServiceHelper.buildResponse(
                     savedVideo,
                     videoUploadResult,
@@ -78,9 +85,6 @@ public class VideoService {
 
         } catch (IOException e) {
             throw new VideoUploadException("Failed to upload video: " + e.getMessage());
-        } finally {
-            videoServiceHelper.deleteTempFile(tempVideoFile);
-            videoServiceHelper.deleteTempFile(tempThumbnailFile);
         }
     }
 
