@@ -11,6 +11,7 @@ public enum Resolution {
     R480P("480p"),
     R360P("360p"),
     R240P("240p"),
+    R144P("144p"),
     AUDIO_ONLY("audio");
 
     private final String label;
@@ -27,6 +28,7 @@ public enum Resolution {
         if (height >= 480) return R480P;
         if (height >= 360) return R360P;
         if (height >= 240) return R240P;
+        if (height >= 144) return R144P;
         return AUDIO_ONLY;
     }
 
