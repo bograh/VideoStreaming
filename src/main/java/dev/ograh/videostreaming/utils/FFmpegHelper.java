@@ -2,7 +2,7 @@ package dev.ograh.videostreaming.utils;
 
 import dev.ograh.videostreaming.dto.shared.VideoMetadata;
 import dev.ograh.videostreaming.enums.EncodeFormat;
-import dev.ograh.videostreaming.enums.VideoResolution;
+import dev.ograh.videostreaming.enums.Resolution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -21,7 +21,7 @@ public class FFmpegHelper {
 
     private static final Logger log = LoggerFactory.getLogger(FFmpegHelper.class);
 
-    public Path runFfmpeg(Path inputFile, EncodeFormat format, VideoResolution resolution, VideoMetadata metadata)
+    public Path runFfmpeg(Path inputFile, EncodeFormat format, Resolution resolution, VideoMetadata metadata)
             throws IOException, InterruptedException {
 
         if (resolution.getHeight() > metadata.dimension().height()) {
@@ -65,7 +65,7 @@ public class FFmpegHelper {
     }
 
     private List<String> buildFfmpegCommand(Path inputFile, Path outputFile,
-                                            EncodeFormat format, VideoResolution resolution) {
+                                            EncodeFormat format, Resolution resolution) {
 
         assert format.getFfmpegCodec() != null;
         List<String> cmd = new ArrayList<>(List.of(
