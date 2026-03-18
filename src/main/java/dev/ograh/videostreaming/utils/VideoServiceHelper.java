@@ -76,6 +76,10 @@ public class VideoServiceHelper {
         return s3Service.uploadVideo(file).join();
     }
 
+    public UploadResult uploadTranscodedVideoAsync(File file, String s3Key) {
+        return s3Service.uploadTranscodedFile(file, s3Key).join();
+    }
+
     public UploadResult uploadThumbnailAsync(File file) {
         return s3Service.uploadThumbnail(file).join();
     }
