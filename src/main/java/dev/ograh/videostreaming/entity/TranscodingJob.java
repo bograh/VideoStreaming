@@ -1,6 +1,8 @@
 package dev.ograh.videostreaming.entity;
 
+import dev.ograh.videostreaming.enums.EncodeFormat;
 import dev.ograh.videostreaming.enums.JobStatus;
+import dev.ograh.videostreaming.enums.Resolution;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -27,11 +29,11 @@ public class TranscodingJob {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, name = "target_encoding")
-    private String targetEncoding;
+    @Enumerated(EnumType.STRING)
+    private EncodeFormat targetEncoding;
 
-    @Column(nullable = false, name = "target_resolution")
-    private String targetResolution;
+    @Enumerated(EnumType.STRING)
+    private Resolution targetResolution;
 
     @Enumerated(EnumType.STRING)
     private JobStatus status;
