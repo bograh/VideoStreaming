@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Component
 public class TranscodingHelperService {
@@ -102,6 +104,34 @@ public class TranscodingHelperService {
         } finally {
             deleteSilently(outputFile);
         }
+    }
+
+    public List<EncodeFormat> getTargetFormats() {
+        return List.of(EncodeFormat.H264, EncodeFormat.H265);
+    }
+
+    public List<Resolution> getTargetResolutions(VideoMetadata metadata) {
+        return Stream.of(
+                        Resolution.R1080P,
+                        Resolution.R720P,
+                        Resolution.R480P
+                )
+                .filter(r -> r.getHeight() <= metadata.dimension().height())
+                .toList();
+    }
+
+    public boolean shouldProcess(EncodeFormat format, Resolution resolution) {
+        // H264 -> all selected resolutions
+        if (format == EncodeFormat.H264) {
+            return true;
+        }
+
+        // H265 -> ONLY 1080p
+        if (format == EncodeFormat.H265) {
+            return resolution == Resolution.R1080P;
+        }
+
+        return false;
     }
 
     private void markProcessing(TranscodingJob job) {

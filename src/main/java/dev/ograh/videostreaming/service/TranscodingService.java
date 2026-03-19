@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -23,29 +24,34 @@ public class TranscodingService {
     private final Executor transcodeExecutor;
     private final TranscodingHelperService transcodingHelperService;
 
-    public void transcodeVideo(UUID videoId, String originalKey, VideoMetadata metadata) {
+    public void transcodeVideo(
+            UUID videoId, VideoMetadata metadata, Path inputFile
+    ) {
 
-        CompletableFuture.runAsync(() -> {
-            Path inputFile = null;
-            try {
-                inputFile = transcodingHelperService.downloadOriginalVideo(videoId, originalKey);
+        List<EncodeFormat> formats = transcodingHelperService.getTargetFormats();
+        List<Resolution> resolutions = transcodingHelperService.getTargetResolutions(metadata);
 
-                for (EncodeFormat format : EncodeFormat.values()) {
-                    if (format == EncodeFormat.ORIGINAL) continue;
-                    for (Resolution resolution : Resolution.values()) {
-                        if (resolution.getHeight() > metadata.dimension().height()) continue;
+        for (EncodeFormat format : formats) {
+            for (Resolution resolution : resolutions) {
+                if (!transcodingHelperService.shouldProcess(format, resolution)) {
+                    continue;
+                }
 
+                CompletableFuture.runAsync(() -> {
+                    try {
                         TranscodingJob job = transcodingHelperService.queueTranscodingJob(
                                 videoId, format, resolution
                         );
-                        transcodingHelperService.processTranscodingJob(job, metadata, inputFile);
+
+                        transcodingHelperService.processTranscodingJob(
+                                job, metadata, inputFile
+                        );
+
+                    } catch (Exception e) {
+                        log.error("Failed job for {} {}", format, resolution, e);
                     }
-                }
-            } catch (Exception e) {
-                log.error("Transcoding failed for video {}", videoId, e);
-            } finally {
-                transcodingHelperService.deleteSilently(inputFile);
+                }, transcodeExecutor);
             }
-        }, transcodeExecutor);
+        }
     }
 }
