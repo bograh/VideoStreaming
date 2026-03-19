@@ -29,6 +29,11 @@ public class FFmpegHelper {
             return null;
         }
 
+        if (resolution == Resolution.AUDIO_ONLY) {
+            log.info("Skipping {} because it's audio only", resolution);
+            return null;
+        }
+
         Path outputFile = Files.createTempFile(
                 inputFile.getParent(), "transcode_", "_" + format + "_" + resolution + ".mp4");
 
@@ -75,14 +80,12 @@ public class FFmpegHelper {
                 "-c:v", format.getFfmpegCodec(),
                 "-c:a", "aac",
                 "-movflags", "+faststart",
-                "-threads", String.valueOf(Runtime.getRuntime().availableProcessors() / 2)
+                "-threads", "1"
         ));
 
         switch (format) {
             case H264 -> cmd.addAll(List.of("-preset", "fast", "-crf", "23"));
             case H265 -> cmd.addAll(List.of("-preset", "fast", "-crf", "28"));
-            case AV1 -> cmd.addAll(List.of("-cpu-used", "4", "-crf", "32", "-b:v", "0"));
-            case MPEG4 -> cmd.addAll(List.of("-q:v", "5"));
         }
 
         cmd.add("-y");
