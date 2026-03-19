@@ -73,7 +73,7 @@ public class VideoService {
             video.addVideoFile(videoFile);
             Video savedVideo = videoRepository.save(video);
 
-            transcodingService.transcodeVideo(savedVideo.getId(), videoFile.getFileKey(), metadata);
+            transcodingService.transcodeVideo(savedVideo.getId(), metadata, tempVideoPath);
 
             return videoServiceHelper.buildResponse(
                     savedVideo,
