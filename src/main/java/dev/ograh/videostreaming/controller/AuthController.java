@@ -4,9 +4,11 @@ import dev.ograh.videostreaming.dto.request.LoginRequest;
 import dev.ograh.videostreaming.dto.request.RegisterRequest;
 import dev.ograh.videostreaming.dto.response.AuthResponse;
 import dev.ograh.videostreaming.dto.response.AuthResponseDTO;
+import dev.ograh.videostreaming.dto.response.UserResponse;
 import dev.ograh.videostreaming.dto.shared.ApiResponse;
 import dev.ograh.videostreaming.exception.InvalidTokenException;
 import dev.ograh.videostreaming.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,14 @@ public class AuthController {
                 "User logged in successfully", authResponse);
 
         setRefreshTokenCookie(response, refreshToken);
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> me(HttpServletRequest request) {
+        UserResponse userResponse = authService.getUserProfile(request);
+        ApiResponse<UserResponse> apiResponse = ApiResponse.success(
+                "User profile retrieved successfully", userResponse);
         return ResponseEntity.ok(apiResponse);
     }
 

@@ -10,6 +10,8 @@ import dev.ograh.videostreaming.enums.UserRole;
 import dev.ograh.videostreaming.exception.*;
 import dev.ograh.videostreaming.repository.UserRepository;
 import dev.ograh.videostreaming.security.JwtService;
+import dev.ograh.videostreaming.utils.UserHelper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -27,6 +29,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final UserHelper userHelper;
 
     public AuthResponseDTO register(RegisterRequest request) {
         String email = request.email();
@@ -69,6 +72,17 @@ public class AuthService {
         }
     }
 
+    public UserResponse getUserProfile(HttpServletRequest request) {
+        User user = userHelper.getAuthenticatedUser(request);
+        return new UserResponse(
+                String.valueOf(user.getId()),
+                user.getName(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getCreatedAt().toString()
+        );
+    }
+
 
     private User createUserEntity(RegisterRequest request) {
         User user = new User();
@@ -83,7 +97,11 @@ public class AuthService {
 
     private AuthResponse createAuthResponse(User user, String token) {
         UserResponse userResponse = new UserResponse(
-                String.valueOf(user.getId()), user.getName(), user.getEmail(), user.getRole().name()
+                String.valueOf(user.getId()),
+                user.getName(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getCreatedAt().toString()
         );
         return new AuthResponse(token, userResponse);
     }
