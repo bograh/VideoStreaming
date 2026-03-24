@@ -1,11 +1,13 @@
 package dev.ograh.videostreaming.controller;
 
 import dev.ograh.videostreaming.dto.request.VideoUploadRequest;
+import dev.ograh.videostreaming.dto.response.CommentResponse;
 import dev.ograh.videostreaming.dto.response.VideoResponse;
 import dev.ograh.videostreaming.dto.response.VideoSummaryResponse;
 import dev.ograh.videostreaming.dto.response.VideoUploadResponse;
 import dev.ograh.videostreaming.dto.shared.ApiResponse;
 import dev.ograh.videostreaming.dto.shared.PageResponse;
+import dev.ograh.videostreaming.service.CommentService;
 import dev.ograh.videostreaming.service.VideoService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +25,7 @@ import java.util.List;
 public class VideoController {
 
     private final VideoService videoService;
+    private final CommentService commentService;
 
     @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<VideoUploadResponse>> uploadVideo(
@@ -58,6 +61,23 @@ public class VideoController {
         return ResponseEntity.ok(apiResponse);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<PageResponse<List<VideoSummaryResponse>>>> getMyVideos(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "16") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "DESC") String order,
+            HttpServletRequest request
+    ) {
+
+        PageResponse<List<VideoSummaryResponse>> videoSummaryResponse = videoService.getMyVideos(
+                page, size, sort, order, request);
+        ApiResponse<PageResponse<List<VideoSummaryResponse>>> apiResponse = ApiResponse.success(
+                "Videos retrieved successfully", videoSummaryResponse);
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
     @GetMapping("/{videoId}")
     public ResponseEntity<ApiResponse<VideoResponse>> getVideo(@PathVariable String videoId) {
         VideoResponse videoResponse = videoService.getVideo(videoId);
@@ -65,6 +85,22 @@ public class VideoController {
                 "Video retrieved successfully", videoResponse);
 
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/{videoId}/comments")
+    public ResponseEntity<ApiResponse<PageResponse<List<CommentResponse>>>> getVideoComments(
+            @PathVariable String videoId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "16") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "DESC") String order
+    ) {
+        PageResponse<List<CommentResponse>> videoComments = commentService.getVideoComments(
+                videoId, page, size, sort, order);
+        ApiResponse<PageResponse<List<CommentResponse>>> apiResponse = ApiResponse.success(
+                "Video comments retrieved successfully", videoComments);
+        return ResponseEntity.ok(apiResponse);
+
     }
 
 }

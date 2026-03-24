@@ -97,6 +97,31 @@ public class VideoService {
         Pageable pageable = videoServiceHelper.createPageable(page, Math.min(size, 50), sortBy, orderBy);
 
         Page<VideoSummaryProjection> videoPage = videoRepository.findAllVideoSummaries(pageable);
+        return getVideoListPageResponse(pageable, videoPage);
+    }
+
+    @Cacheable(value = "videos", key = "#videoId")
+    public VideoResponse getVideo(String videoId) {
+        UUID videoUuid = UUID.fromString(videoId);
+        VideoProjection video = videoRepository.findProjectedVideo(videoUuid).orElseThrow(
+                () -> new ResourceNotFoundException("Video not found with id: " + videoId)
+        );
+
+        return videoServiceHelper.buildVideoResponseFrom(video);
+    }
+    
+    public PageResponse<List<VideoSummaryResponse>> getMyVideos(
+            int page, int size, String sort, String order, HttpServletRequest request
+    ) {
+        Pageable pageable = videoServiceHelper.createPageable(page, Math.min(size, 50), sort, order);
+
+        User user = userHelper.getAuthenticatedUser(request);
+
+        Page<VideoSummaryProjection> videoPage = videoRepository.findAllVideoSummariesByUser(pageable, user.getId());
+        return getVideoListPageResponse(pageable, videoPage);
+    }
+
+    private PageResponse<List<VideoSummaryResponse>> getVideoListPageResponse(Pageable pageable, Page<VideoSummaryProjection> videoPage) {
         List<UUID> videoIds = videoPage.stream().map(VideoSummaryProjection::getId).toList();
 
         List<VideoTagProjection> tags = videoRepository.findTagsByVideoIds(videoIds);
@@ -121,15 +146,4 @@ public class VideoService {
                 videoPage.getSort().toString()
         );
     }
-
-    @Cacheable(value = "videos", key = "#videoId")
-    public VideoResponse getVideo(String videoId) {
-        UUID videoUuid = UUID.fromString(videoId);
-        VideoProjection video = videoRepository.findProjectedVideo(videoUuid).orElseThrow(
-                () -> new ResourceNotFoundException("Video not found with id: " + videoId)
-        );
-
-        return videoServiceHelper.buildVideoResponseFrom(video);
-    }
-
 }

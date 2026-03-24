@@ -158,7 +158,7 @@ public class TranscodingHelperService {
 
     private String buildOutputS3Key(TranscodingJob job) {
         return String.format(
-                "%s/%s/%s.mp4",
+                "transcoded_videos/%s/%s/%s.mp4",
                 job.getVideo().getId(),
                 job.getTargetEncoding(),
                 job.getTargetResolution()

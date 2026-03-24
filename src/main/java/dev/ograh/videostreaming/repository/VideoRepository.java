@@ -66,4 +66,20 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
                 WHERE v.id IN :videoIds
             """)
     List<VideoTagProjection> findTagsByVideoIds(@Param("videoIds") List<UUID> videoIds);
+
+    @Query("""
+                SELECT v.id AS id,
+                       v.title AS title,
+                       u.name AS user,
+                       v.durationSecs AS durationSecs,
+                       v.thumbnailKey AS thumbnailKey,
+                       v.viewCount AS viewCount,
+                       v.createdAt AS createdAt
+                FROM Video v
+                JOIN v.user u
+                WHERE u.id = :userId
+                ORDER BY v.createdAt DESC
+            """)
+    Page<VideoSummaryProjection> findAllVideoSummariesByUser(
+            Pageable pageable, @Param("userId") UUID userId);
 }

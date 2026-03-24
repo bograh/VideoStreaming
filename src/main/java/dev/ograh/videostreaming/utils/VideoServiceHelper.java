@@ -23,6 +23,7 @@ import dev.ograh.videostreaming.repository.VideoRepository;
 import dev.ograh.videostreaming.service.S3Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -35,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class VideoServiceHelper {
@@ -182,9 +184,15 @@ public class VideoServiceHelper {
         List<String> tags = videoRepository.findTagsByVideoId(videoId);
         String thumbnailUrl = s3Service.getPresignedUrl(video.getThumbnailKey());
         List<VideoResolutionsUrl> resolutions = files.stream()
-                .map(file -> new VideoResolutionsUrl(
-                        file.getResolution().getLabel(),
-                        s3Service.getPresignedUrl(file.getFileKey()))).toList();
+                .collect(Collectors.toMap(
+                        file -> file.getResolution().getLabel(),
+                        file -> new VideoResolutionsUrl(
+                                file.getResolution().getLabel(),
+                                s3Service.getPresignedUrl(file.getFileKey())),
+                        (existing, replacement) -> existing))
+                .values()
+                .stream()
+                .toList();
 
         return new VideoResponse(
                 String.valueOf(videoId),
@@ -200,6 +208,10 @@ public class VideoServiceHelper {
                 video.getDislikeCount(),
                 video.getCreatedAt().toString()
         );
+    }
+
+    @CacheEvict(value = "videos", key = "#videoId")
+    public void evictVideoCacheByKey(String videoId) {
     }
 
 }
