@@ -6,10 +6,13 @@ import dev.ograh.videostreaming.utils.TempFileManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -30,6 +33,7 @@ public class S3Service {
     private final S3Config s3Config;
     private final S3Presigner s3Presigner;
     private final TempFileManager tempFileManager;
+    private final S3Client s3Client;
 
     public CompletableFuture<UploadResult> uploadThumbnail(File thumbnailFile) {
         return uploadFile(thumbnailFile, "thumbnails/", "image/jpeg");
@@ -66,7 +70,7 @@ public class S3Service {
 
     public String getPresignedUrl(String key) {
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(60))
+                .signatureDuration(Duration.ofHours(6))
                 .getObjectRequest(req -> req
                         .bucket(s3Config.getBucketName())
                         .key(key)
@@ -103,5 +107,15 @@ public class S3Service {
                         AsyncRequestBody.fromBytes(content.getBytes(StandardCharsets.UTF_8))
                 )
                 .thenApply(resp -> new UploadResult(key, getPresignedUrl(key)));
+    }
+
+    public String downloadString(String key) throws IOException {
+        ResponseInputStream<GetObjectResponse> stream = s3Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(s3Config.getBucketName())
+                        .key(key)
+                        .build()
+        );
+        return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
     }
 }
