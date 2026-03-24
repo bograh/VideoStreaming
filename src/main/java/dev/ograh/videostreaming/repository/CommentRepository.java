@@ -22,7 +22,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
                        c.hidden as hidden,
                        c.createdAt as createdAt,
                        u.name as author,
-                       pc.id as parentId
+                       pc.id as parentCommentId
                 FROM Comment c
                 JOIN c.user u
                 LEFT JOIN c.parent pc
