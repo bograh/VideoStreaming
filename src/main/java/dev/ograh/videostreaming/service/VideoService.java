@@ -16,10 +16,7 @@ import dev.ograh.videostreaming.entity.VideoFile;
 import dev.ograh.videostreaming.exception.ResourceNotFoundException;
 import dev.ograh.videostreaming.exception.VideoUploadException;
 import dev.ograh.videostreaming.repository.VideoRepository;
-import dev.ograh.videostreaming.utils.TempFileManager;
-import dev.ograh.videostreaming.utils.UserHelper;
-import dev.ograh.videostreaming.utils.VideoMetadataUtil;
-import dev.ograh.videostreaming.utils.VideoServiceHelper;
+import dev.ograh.videostreaming.utils.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -47,6 +44,7 @@ public class VideoService {
     private final VideoServiceHelper videoServiceHelper;
     private final TranscodingService transcodingService;
     private final TempFileManager tempFileManager;
+    private final VideoResponseBuilder videoResponseBuilder;
 
     @CacheEvict(value = "videos", allEntries = true)
     public VideoUploadResponse uploadVideo(MultipartFile file, MultipartFile thumbnail, VideoUploadRequest videoUploadRequest, HttpServletRequest request) {
@@ -75,7 +73,7 @@ public class VideoService {
 
             transcodingService.transcodeVideo(savedVideo.getId(), metadata, tempVideoPath);
 
-            return videoServiceHelper.buildResponse(
+            return videoServiceHelper.buildUploadResponse(
                     savedVideo,
                     videoUploadResult,
                     thumbnailUploadResult,
@@ -107,9 +105,9 @@ public class VideoService {
                 () -> new ResourceNotFoundException("Video not found with id: " + videoId)
         );
 
-        return videoServiceHelper.buildVideoResponseFrom(video);
+        return videoResponseBuilder.buildVideoResponse(video);
     }
-    
+
     public PageResponse<List<VideoSummaryResponse>> getMyVideos(
             int page, int size, String sort, String order, HttpServletRequest request
     ) {
@@ -131,7 +129,7 @@ public class VideoService {
                         Collectors.mapping(VideoTagProjection::getTag, Collectors.toList())));
 
         List<VideoSummaryResponse> videos = videoPage.stream()
-                .map(v -> videoServiceHelper.buildVideoSummaryResponse(v, tagsMap))
+                .map(v -> videoResponseBuilder.buildSummaryResponse(v, tagsMap))
                 .toList();
 
         return new PageResponse<>(

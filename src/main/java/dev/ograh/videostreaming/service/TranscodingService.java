@@ -5,7 +5,7 @@ import dev.ograh.videostreaming.entity.TranscodingJob;
 import dev.ograh.videostreaming.enums.EncodeFormat;
 import dev.ograh.videostreaming.enums.Resolution;
 import dev.ograh.videostreaming.utils.TranscodingHelperService;
-import dev.ograh.videostreaming.utils.VideoServiceHelper;
+import dev.ograh.videostreaming.utils.VideoCacheService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ public class TranscodingService {
     private static final Logger log = LoggerFactory.getLogger(TranscodingService.class);
     private final Executor transcodeExecutor;
     private final TranscodingHelperService transcodingHelperService;
-    private final VideoServiceHelper videoServiceHelper;
+    private final VideoCacheService videoCacheService;
 
     public void transcodeVideo(
             UUID videoId, VideoMetadata metadata, Path inputFile
@@ -41,14 +41,8 @@ public class TranscodingService {
 
                 CompletableFuture.runAsync(() -> {
                     try {
-                        TranscodingJob job = transcodingHelperService.queueTranscodingJob(
-                                videoId, format, resolution
-                        );
-
-                        transcodingHelperService.processTranscodingJob(
-                                job, metadata, inputFile
-                        );
-
+                        TranscodingJob job = transcodingHelperService.queueTranscodingJob(videoId, format, resolution);
+                        transcodingHelperService.processTranscodingJob(job, metadata, inputFile);
                     } catch (Exception e) {
                         log.error("Failed job for {} {}", format, resolution, e);
                     }
@@ -56,6 +50,6 @@ public class TranscodingService {
             }
         }
 
-        videoServiceHelper.evictVideoCacheByKey(String.valueOf(videoId));
+        videoCacheService.evictVideo(String.valueOf(videoId));
     }
 }

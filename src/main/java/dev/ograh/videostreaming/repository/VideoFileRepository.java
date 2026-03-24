@@ -12,6 +12,8 @@ import java.util.UUID;
 @Repository
 public interface VideoFileRepository extends JpaRepository<VideoFile, UUID> {
 
+    List<VideoFile> findByVideoId(UUID videoId);
+
     @Query("""
                 SELECT
                     vf.resolution as resolution,

@@ -4,14 +4,11 @@ import dev.ograh.videostreaming.config.S3Config;
 import dev.ograh.videostreaming.dto.shared.UploadResult;
 import dev.ograh.videostreaming.utils.TempFileManager;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -19,6 +16,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.UUID;
@@ -28,9 +26,7 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class S3Service {
 
-    private static final Logger log = LoggerFactory.getLogger(S3Service.class);
     private final S3AsyncClient s3AsyncClient;
-    private final S3Client s3Client;
     private final S3Config s3Config;
     private final S3Presigner s3Presigner;
     private final TempFileManager tempFileManager;
@@ -91,5 +87,21 @@ public class S3Service {
 
         s3AsyncClient.getObject(request, AsyncResponseTransformer.toFile(localFile)).join();
         return localFile;
+    }
+
+    public CompletableFuture<UploadResult> uploadString(
+            String key, String content, String contentType
+    ) {
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(s3Config.getBucketName())
+                .key(key)
+                .contentType(contentType)
+                .build();
+
+        return s3AsyncClient.putObject(
+                        request,
+                        AsyncRequestBody.fromBytes(content.getBytes(StandardCharsets.UTF_8))
+                )
+                .thenApply(resp -> new UploadResult(key, getPresignedUrl(key)));
     }
 }
