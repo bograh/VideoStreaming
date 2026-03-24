@@ -63,11 +63,11 @@ multi-resolution support, JWT-based authentication, and S3 storage.
 
 ## Architecture Overview
 
-1. **Upload flow** — Video is uploaded → saved to a temp directory → metadata extracted via FFprobe → uploaded to S3 →
-   persisted to PostgreSQL → transcoding kicked off asynchronously.
-2. **Transcoding flow** — Original video downloaded from S3 → FFmpeg transcodes to each resolution/codec combination →
-   transcoded files uploaded back to S3 → job status tracked in the database.
-3. **Playback flow** — Client requests a video → backend returns pre-signed S3 URLs for all available resolutions.
+1. **Upload flow** — Video is uploaded saved to a temp directory metadata extracted via FFprobe uploaded to S3
+   persisted to PostgreSQL transcoding kicked off asynchronously.
+2. **Transcoding flow** — Original video downloaded from S3 FFmpeg transcodes to each resolution/codec combination
+   transcoded files uploaded back to S3 job status tracked in the database.
+3. **Playback flow** — Client requests a video backend returns pre-signed S3 URLs for all available resolutions.
 
 ---
 
