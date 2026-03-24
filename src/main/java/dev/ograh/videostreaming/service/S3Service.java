@@ -6,6 +6,7 @@ import dev.ograh.videostreaming.utils.TempFileManager;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -38,15 +39,15 @@ public class S3Service {
         return uploadFile(thumbnailFile, "thumbnails/", "image/jpeg");
     }
 
+    @Async("asyncExecutor")
     public CompletableFuture<UploadResult> uploadVideo(File videoFile) {
         return uploadFile(videoFile, "videos/", "video/mp4");
     }
 
     public CompletableFuture<UploadResult> uploadTranscodedFile(File videoFile, String s3Key) {
-        String key = "transcoded_videos/" + s3Key;
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(s3Config.getBucketName())
-                .key(key)
+                .key(s3Key)
                 .contentType("video/mp4")
                 .build();
 
