@@ -57,7 +57,7 @@ public class FFmpegHelper {
         return outputFile;
     }
 
-    public Path runFfmpegHls(Path inputFile, Resolution resolution, VideoMetadata metadata)
+    public Path runFfmpegHls(Path inputFile, EncodeFormat format, Resolution resolution, VideoMetadata metadata)
             throws IOException, InterruptedException {
 
         if (resolution.getHeight() > metadata.dimension().height()) {
@@ -68,7 +68,7 @@ public class FFmpegHelper {
         Path outputDir = Files.createTempDirectory("hls_" + resolution);
 
         try {
-            runProcess(buildHlsCommand(inputFile, outputDir, resolution), "HLS/" + resolution);
+            runProcess(buildHlsCommand(inputFile, outputDir, resolution, format), "HLS/" + resolution);
         } catch (Exception e) {
             // Clean up the temp directory on failure
             try (Stream<Path> walk = Files.walk(outputDir)) {
@@ -137,7 +137,13 @@ public class FFmpegHelper {
         return cmd;
     }
 
-    private List<String> buildHlsCommand(Path input, Path outputDir, Resolution resolution) {
+    private List<String> buildHlsCommand(
+            Path input, Path outputDir, Resolution resolution, EncodeFormat format
+    ) {
+        if (format.getFfmpegCodec() == null) {
+            throw new IllegalArgumentException("No FFmpeg codec configured for format: " + format);
+        }
+
         return List.of(
                 "ffmpeg",
                 "-i", input.toString(),
@@ -145,7 +151,7 @@ public class FFmpegHelper {
                 "-c:a", "aac",
                 "-ar", "48000",
                 "-b:a", "128k",
-                "-c:v", "libx264",
+                "-c:v", format.getFfmpegCodec(),
                 "-profile:v", "main",
                 "-crf", "20",
                 "-sc_threshold", "0",

@@ -16,11 +16,14 @@ import dev.ograh.videostreaming.repository.VideoRepository;
 import dev.ograh.videostreaming.service.S3Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,8 +31,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
@@ -148,6 +153,21 @@ public class VideoServiceHelper {
         );
     }
 
+    public void validatePlaylistKey(String key) {
+        if (key == null || key.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing playlist key");
+        }
+        if (!key.startsWith("videos/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid playlist key");
+        }
+        if (!key.endsWith(".m3u8")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Key must refer to an m3u8 file");
+        }
+        if (key.contains("..")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid playlist key");
+        }
+    }
+
     public Pageable createPageable(int page, int size, String sortBy, String orderBy) {
         VideoSortField sortField = VideoSortField.from(sortBy);
         Sort.Direction direction = Sort.Direction.DESC;
@@ -160,5 +180,36 @@ public class VideoServiceHelper {
         }
 
         return PageRequest.of(page, size, Sort.by(direction, sortField.getField()));
+    }
+
+    @Cacheable(value = "videos", key = "'playlist:' + #playlistKey")
+    public String buildRewrittenPlaylist(String playlistKey) {
+        String rawPlaylist;
+        try {
+            rawPlaylist = s3Service.downloadString(playlistKey);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        String keyPrefix = playlistKey.substring(0, playlistKey.lastIndexOf('/') + 1);
+
+        String result = Arrays.stream(rawPlaylist.split("\\r?\\n"))
+                .map(line -> {
+                    String trimmed = line.trim();
+                    if (!trimmed.startsWith("#") && trimmed.endsWith(".ts")) {
+                        String segmentKey = keyPrefix + trimmed;
+                        String presigned = s3Service.getPresignedUrl(segmentKey);
+                        log.info("Rewriting segment: {} -> {}", segmentKey, presigned);
+                        return presigned;
+                    }
+                    return line;
+                })
+                .collect(Collectors.joining("\n"));
+        log.info("Rewritten playlist for {}:\n{}", playlistKey, result);
+        return result;
+    }
+
+    private String buildPresignedPlaylistUrl(String playlistKey) {
+        return "/api/videos/playlist?key=" + playlistKey;
     }
 }

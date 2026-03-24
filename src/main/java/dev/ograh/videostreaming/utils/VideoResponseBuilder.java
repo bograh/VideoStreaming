@@ -61,7 +61,9 @@ public class VideoResponseBuilder {
                         f -> f.getResolution().getLabel(),
                         f -> new VideoResolutionsUrl(
                                 f.getResolution().getLabel(),
-                                s3Service.getPresignedUrl(f.getFileKey())),
+                                f.getFileKey().endsWith(".m3u8")
+                                        ? "/api/videos/playlist?key=" + f.getFileKey()
+                                        : s3Service.getPresignedUrl(f.getFileKey())),
                         (existing, replacement) -> existing))
                 .values()
                 .stream()

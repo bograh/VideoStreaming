@@ -9,9 +9,12 @@ import dev.ograh.videostreaming.dto.shared.ApiResponse;
 import dev.ograh.videostreaming.dto.shared.PageResponse;
 import dev.ograh.videostreaming.service.CommentService;
 import dev.ograh.videostreaming.service.VideoService;
+import dev.ograh.videostreaming.utils.VideoResponseBuilder;
+import dev.ograh.videostreaming.utils.VideoServiceHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +29,8 @@ public class VideoController {
 
     private final VideoService videoService;
     private final CommentService commentService;
+    private final VideoResponseBuilder videoResponseBuilder;
+    private final VideoServiceHelper videoServiceHelper;
 
     @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<VideoUploadResponse>> uploadVideo(
@@ -59,6 +64,18 @@ public class VideoController {
                 "Videos retrieved successfully", videoSummaryResponse);
 
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping(value = "/playlist", produces = "application/vnd.apple.mpegurl")
+    public ResponseEntity<String> getPresignedPlaylist(@RequestParam String key) {
+        videoServiceHelper.validatePlaylistKey(key);
+
+        String rewrittenPlaylist = videoServiceHelper.buildRewrittenPlaylist(key);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.apple.mpegurl")
+                .body(rewrittenPlaylist);
     }
 
     @GetMapping("/me")

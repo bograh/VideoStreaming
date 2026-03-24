@@ -8,6 +8,7 @@ import dev.ograh.videostreaming.entity.VideoFile;
 import dev.ograh.videostreaming.enums.EncodeFormat;
 import dev.ograh.videostreaming.enums.JobStatus;
 import dev.ograh.videostreaming.enums.Resolution;
+import dev.ograh.videostreaming.enums.VideoStatus;
 import dev.ograh.videostreaming.repository.TranscodingJobRepository;
 import dev.ograh.videostreaming.repository.VideoFileRepository;
 import dev.ograh.videostreaming.repository.VideoRepository;
@@ -88,7 +89,8 @@ public class TranscodingHelperService {
 
         try {
             Resolution resolution = job.getTargetResolution();
-            hlsDir = ffmpegHelper.runFfmpegHls(inputFile, resolution, metadata);
+            EncodeFormat format = job.getTargetEncoding();
+            hlsDir = ffmpegHelper.runFfmpegHls(inputFile, format, resolution, metadata);
 
             if (hlsDir != null) {
                 String baseKey = "videos/" + job.getVideo().getId() + "/" + resolution;
@@ -151,6 +153,12 @@ public class TranscodingHelperService {
         String key = "videos/" + videoId + "/master.m3u8";
         s3Service.uploadString(key, masterPlaylist, "application/vnd.apple.mpegurl").join();
         log.info("Master playlist uploaded for video {}", videoId);
+
+        videoRepository.findById(videoId).ifPresent(video -> {
+            video.setStatus(VideoStatus.COMPLETED);
+            videoRepository.save(video);
+            log.info("Video {} marked as COMPLETED", videoId);
+        });
     }
 
     private void markProcessing(TranscodingJob job) {
@@ -206,7 +214,8 @@ public class TranscodingHelperService {
                     .append(",RESOLUTION=")
                     .append(res.getWidth()).append("x").append(res.getHeight())
                     .append("\n")
-                    .append(relativeHlsPath(file.getFileKey()))
+                    .append("/api/videos/playlist?key=")
+                    .append(file.getFileKey())
                     .append("\n");
         }
 
@@ -222,15 +231,6 @@ public class TranscodingHelperService {
             case R240P -> 400_000;
             default -> 1_000_000;
         };
-    }
-
-    private String relativeHlsPath(String fullKey) {
-        int afterVideosPrefix = "videos/".length();
-        int slashAfterVideoId = fullKey.indexOf("/", afterVideosPrefix);
-        if (slashAfterVideoId == -1 || slashAfterVideoId + 1 >= fullKey.length()) {
-            throw new IllegalArgumentException("Unexpected HLS key format, cannot extract relative path: " + fullKey);
-        }
-        return fullKey.substring(slashAfterVideoId + 1);
     }
 
     public void deleteSilently(Path path) {
