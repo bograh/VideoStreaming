@@ -1,0 +1,147 @@
+package dev.ograh.videostreaming.service;
+
+import dev.ograh.videostreaming.dto.projection.VideoProjection;
+import dev.ograh.videostreaming.dto.projection.VideoSummaryProjection;
+import dev.ograh.videostreaming.dto.projection.VideoTagProjection;
+import dev.ograh.videostreaming.dto.request.VideoUploadRequest;
+import dev.ograh.videostreaming.dto.response.VideoResponse;
+import dev.ograh.videostreaming.dto.response.VideoSummaryResponse;
+import dev.ograh.videostreaming.dto.response.VideoUploadResponse;
+import dev.ograh.videostreaming.dto.shared.PageResponse;
+import dev.ograh.videostreaming.dto.shared.UploadResult;
+import dev.ograh.videostreaming.dto.shared.VideoMetadata;
+import dev.ograh.videostreaming.entity.User;
+import dev.ograh.videostreaming.entity.Video;
+import dev.ograh.videostreaming.entity.VideoFile;
+import dev.ograh.videostreaming.exception.ResourceNotFoundException;
+import dev.ograh.videostreaming.exception.VideoUploadException;
+import dev.ograh.videostreaming.repository.VideoRepository;
+import dev.ograh.videostreaming.utils.*;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class VideoService {
+
+    private final VideoRepository videoRepository;
+    private final UserHelper userHelper;
+    private final VideoMetadataUtil videoMetadataUtil;
+    private final VideoServiceHelper videoServiceHelper;
+    private final TranscodingService transcodingService;
+    private final TempFileManager tempFileManager;
+    private final VideoResponseBuilder videoResponseBuilder;
+
+    @CacheEvict(value = "videos", allEntries = true)
+    public VideoUploadResponse uploadVideo(MultipartFile file, MultipartFile thumbnail, VideoUploadRequest videoUploadRequest, HttpServletRequest request) {
+        videoServiceHelper.validateVideoFile(file, videoUploadRequest.title());
+        User user = userHelper.getAuthenticatedUser(request);
+
+        try {
+            Path tempVideoPath = tempFileManager.createTempFile("upload-", ".mp4");
+            File tempVideoFile = tempVideoPath.toFile();
+
+            File tempThumbnailFile = tempFileManager.createTempFile("thumbnail-", ".jpg").toFile();
+
+            file.transferTo(tempVideoFile);
+            thumbnail.transferTo(tempThumbnailFile);
+
+            VideoMetadata metadata = videoMetadataUtil.extractMetadata(tempVideoFile);
+
+            UploadResult videoUploadResult = videoServiceHelper.uploadVideoAsync(tempVideoFile);
+            UploadResult thumbnailUploadResult = videoServiceHelper.uploadThumbnailAsync(tempThumbnailFile);
+
+            Video video = videoServiceHelper.buildVideoEntity(videoUploadRequest, user, metadata, thumbnailUploadResult);
+            VideoFile videoFile = videoServiceHelper.buildVideoFileEntity(videoUploadResult, metadata, tempVideoFile.length(), video);
+
+            video.addVideoFile(videoFile);
+            Video savedVideo = videoRepository.save(video);
+
+            transcodingService.transcodeVideo(savedVideo.getId(), metadata, tempVideoPath);
+
+            return videoServiceHelper.buildUploadResponse(
+                    savedVideo,
+                    videoUploadResult,
+                    thumbnailUploadResult,
+                    videoUploadRequest.tags(),
+                    metadata
+            );
+
+        } catch (IOException e) {
+            throw new VideoUploadException("Failed to upload video: " + e.getMessage());
+        }
+    }
+
+    @Cacheable(
+            value = "videos",
+            condition = "#search == null",
+            key = "'page=' + #page + ',size=' + #size + ',sortBy=' + #sortBy + ',orderBy=' + #orderBy"
+    )
+    public PageResponse<List<VideoSummaryResponse>> getVideos(int page, int size, String sortBy, String orderBy, String search) {
+        Pageable pageable = videoServiceHelper.createPageable(page, Math.min(size, 50), sortBy, orderBy);
+
+        Page<VideoSummaryProjection> videoPage = videoRepository.findAllVideoSummaries(pageable);
+        return getVideoListPageResponse(pageable, videoPage);
+    }
+
+    @Cacheable(value = "videos", key = "#videoId")
+    public VideoResponse getVideo(String videoId) {
+        UUID videoUuid = UUID.fromString(videoId);
+        VideoProjection video = videoRepository.findProjectedVideo(videoUuid).orElseThrow(
+                () -> new ResourceNotFoundException("Video not found with id: " + videoId)
+        );
+
+        return videoResponseBuilder.buildVideoResponse(video);
+    }
+
+    public PageResponse<List<VideoSummaryResponse>> getMyVideos(
+            int page, int size, String sort, String order, HttpServletRequest request
+    ) {
+        Pageable pageable = videoServiceHelper.createPageable(page, Math.min(size, 50), sort, order);
+
+        User user = userHelper.getAuthenticatedUser(request);
+
+        Page<VideoSummaryProjection> videoPage = videoRepository.findAllVideoSummariesByUser(pageable, user.getId());
+        return getVideoListPageResponse(pageable, videoPage);
+    }
+
+    private PageResponse<List<VideoSummaryResponse>> getVideoListPageResponse(Pageable pageable, Page<VideoSummaryProjection> videoPage) {
+        List<UUID> videoIds = videoPage.stream().map(VideoSummaryProjection::getId).toList();
+
+        List<VideoTagProjection> tags = videoRepository.findTagsByVideoIds(videoIds);
+
+        Map<UUID, List<String>> tagsMap = tags.stream().collect(
+                Collectors.groupingBy(VideoTagProjection::getVideoId,
+                        Collectors.mapping(VideoTagProjection::getTag, Collectors.toList())));
+
+        List<VideoSummaryResponse> videos = videoPage.stream()
+                .map(v -> videoResponseBuilder.buildSummaryResponse(v, tagsMap))
+                .toList();
+
+        return new PageResponse<>(
+                videos,
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                videoPage.getTotalPages(),
+                videoPage.getTotalElements(),
+                videoPage.isFirst(),
+                videoPage.isLast(),
+                videoPage.getNumberOfElements(),
+                videoPage.getSort().toString()
+        );
+    }
+}

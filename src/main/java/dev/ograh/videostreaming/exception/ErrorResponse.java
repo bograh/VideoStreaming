@@ -5,6 +5,7 @@ public record ErrorResponse(
         String errorType,
         String errorMessage,
         String path,
-        String timestamp
+        String timestamp,
+        String requestId
 ) {
 }

@@ -1,0 +1,95 @@
+package dev.ograh.videostreaming.config;
+
+import lombok.Getter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+
+import java.net.URI;
+
+@Configuration
+public class S3Config {
+
+    @Value("${aws.access-key}")
+    private String awsAccessKey;
+
+    @Value("${aws.secret-key}")
+    private String awsSecretKey;
+
+    @Getter
+    @Value("${aws.s3.bucket-name}")
+    private String bucketName;
+
+    @Value("${aws.s3.region}")
+    private String region;
+
+    @Value("${aws.s3.endpoint}")
+    private String endpoint;
+
+    @Value("${aws.s3.path-style-access-enabled}")
+    private boolean pathStyleAccessEnabled;
+
+    @Bean
+    public S3Client s3Client() {
+        AwsBasicCredentials credentials = AwsBasicCredentials
+                .create(awsAccessKey, awsSecretKey);
+        StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider
+                .create(credentials);
+        S3ClientBuilder builder = S3Client.builder()
+                .region(Region.of(region))
+                .credentialsProvider(credentialsProvider)
+                .forcePathStyle(pathStyleAccessEnabled);
+
+        if (endpoint != null && !endpoint.isBlank()) {
+            builder.endpointOverride(URI.create(endpoint));
+        }
+
+        return builder.build();
+    }
+
+    @Bean
+    public S3AsyncClient s3AsyncClient() {
+        AwsBasicCredentials credentials = AwsBasicCredentials
+                .create(awsAccessKey, awsSecretKey);
+        StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider
+                .create(credentials);
+        S3AsyncClientBuilder builder = S3AsyncClient.builder()
+                .region(Region.of(region))
+                .credentialsProvider(credentialsProvider)
+                .forcePathStyle(pathStyleAccessEnabled);
+
+        if (endpoint != null && !endpoint.isBlank()) {
+            builder.endpointOverride(URI.create(endpoint));
+        }
+
+        return builder.build();
+    }
+
+    @Bean
+    public S3Presigner s3Presigner() {
+        AwsBasicCredentials credentials = AwsBasicCredentials
+                .create(awsAccessKey, awsSecretKey);
+
+        StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider
+                .create(credentials);
+
+        S3Presigner.Builder builder = S3Presigner.builder()
+                .region(Region.of(region))
+                .credentialsProvider(credentialsProvider);
+
+        if (endpoint != null && !endpoint.isBlank()) {
+            builder.endpointOverride(URI.create(endpoint));
+        }
+
+        return builder.build();
+    }
+
+}
